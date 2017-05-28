@@ -1,0 +1,26 @@
+{
+    "author": "Benjamin Powell",
+    "dependencies": {},
+    "keywords": [],
+    "name": "tilt-ball",
+    "pebble": {
+        "displayName": "Tilt Ball",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk"
+        ],
+        "uuid": "1c423cd2-6046-4cb9-b61e-e6ade63b4dae",
+        "watchapp": {
+            "watchface": false
+        }
+    },
+    "version": "1.0.0"
+}
