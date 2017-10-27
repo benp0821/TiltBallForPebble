@@ -17,6 +17,15 @@ int16_t hit_counter = 0;
 bool game_over = true;
 bool game_started = false;
 
+bool enemy_exists = false;
+struct {
+  int16_t startingSide;
+  int16_t startingX;
+  int16_t startingY;
+  int16_t radius;
+  int16_t speed;
+} enemy_object;
+
 /*
 * Calculates the square root of a number.
 */
@@ -33,7 +42,7 @@ float my_sqrt(const float num) {
   return answer;
 }
 
-//A tap even occured
+
 static void accel_data_handler(AccelData *data, uint32_t num_samples){
   // Read sample 0's x, y, and z values
   int16_t x = data[0].x;
@@ -80,6 +89,18 @@ static void accel_data_handler(AccelData *data, uint32_t num_samples){
       }
     }
     
+    
+    int16_t dx2 = player_point.x - enemy_object.startingX;
+    int16_t dy2 = player_point.y - enemy_object.startingY;
+    double distance2 = my_sqrt(dx2 * dx2 + dy2 * dy2);
+    
+    if (distance2 < player_radius + enemy_object.radius){
+      game_over = true;
+      enemy_object.startingX = 500;
+      enemy_object.startingY = 500;
+    }
+    
+    
     if (player_point.x + player_radius > bounds.size.w || player_point.x - player_radius < 0 || 
        player_point.y + player_radius > bounds.size.h || player_point.y - player_radius < 0){
       player_point.x = bounds.size.w / 2;
@@ -92,7 +113,32 @@ static void accel_data_handler(AccelData *data, uint32_t num_samples){
       game_over = true;
     }
     
+    
+    if (game_started && !enemy_exists && rand() % 500 > 200){
+      enemy_object.startingSide = rand() % 4;
+      
+      if (enemy_object.startingSide == 0){
+        enemy_object.startingX = rand() % 144;
+        enemy_object.startingY = -5;
+      }else if (enemy_object.startingSide == 1){
+        enemy_object.startingY = rand() % 168;
+        enemy_object.startingX = -5;
+      }else if (enemy_object.startingSide == 2){
+        enemy_object.startingX = rand() % 144;
+        enemy_object.startingY = 173;
+      }else{
+        enemy_object.startingY = rand() % 168;
+        enemy_object.startingX = 149;
+      }
+      
+      enemy_object.radius = 3;
+      enemy_object.speed = rand()%4 + 4;
+      enemy_exists = true;
+    }
+    
   } 
+  
+  
   
   layer_mark_dirty(s_canvas_layer);
 }
@@ -112,6 +158,8 @@ void draw_custom(Layer *this_layer, GContext *ctx){
       graphics_draw_line(ctx, GPoint(bounds.size.w - 20, bounds.size.h/2 - 15), GPoint(bounds.size.w - 5, bounds.size.h/2));
     }
   }else{
+    enemy_exists = false;
+    
     char final_score_str[100];
     snprintf(final_score_str, sizeof(final_score_str), "%s%s", "Final Score: \n", hit_string);
     graphics_draw_text(ctx, final_score_str, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK),
@@ -121,11 +169,37 @@ void draw_custom(Layer *this_layer, GContext *ctx){
 
 static void canvas_update_proc(Layer *layer, GContext *ctx){
   if (!game_over || !game_started){
-    graphics_context_set_fill_color(ctx, GColorFromRGB(149,115,115));
+    graphics_context_set_fill_color(ctx, GColorBlue);
     graphics_fill_circle(ctx, player_point, player_radius);
   
-    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_context_set_fill_color(ctx, GColorJaegerGreen);
     graphics_fill_circle(ctx, objective_point, OBJECTIVE_RADIUS);
+    
+    if (enemy_exists){
+      graphics_context_set_fill_color(ctx, GColorRed);
+      if (enemy_object.startingSide == 0){
+        enemy_object.startingY += enemy_object.speed; 
+        if (enemy_object.startingY > 168){
+          enemy_exists = false;
+        }
+      }else if (enemy_object.startingSide == 1){
+        enemy_object.startingX += enemy_object.speed; //144
+        if (enemy_object.startingX > 144){
+          enemy_exists = false;
+        }
+      }else if (enemy_object.startingSide == 2){
+        enemy_object.startingY -= enemy_object.speed; //168
+        if (enemy_object.startingY < 0){
+          enemy_exists = false;
+        }
+      }else{
+        enemy_object.startingX -= enemy_object.speed; //144
+        if (enemy_object.startingX < 0){
+          enemy_exists = false;
+        }
+      }
+      graphics_fill_circle(ctx, GPoint(enemy_object.startingX, enemy_object.startingY), enemy_object.radius);
+    }
   }
 }
 
@@ -145,6 +219,7 @@ void handle_init(void) {
   srand(time(NULL));
   player_point = GPoint(70,80);
   player_radius = STARTING_RADIUS;
+  
   my_window = window_create();
   bounds = layer_get_bounds(window_get_root_layer(my_window));
   s_canvas_layer = layer_create(bounds);
